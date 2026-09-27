@@ -55,17 +55,13 @@
 
 // ---------------------------------------------------------------- 日志
 
-// 轻量日志：ctor 期专用。只用 libSystem 的 open/write，不碰 Foundation 高层 API。
-extern int open(const char *path, int flags, ...);
-extern long write(int fd, const void *buf, unsigned long n);
-extern int close(int fd);
-extern char *getenv(const char *name);
-extern unsigned long strlen(const char *s);
-extern int snprintf(char *s, unsigned long n, const char *fmt, ...);
-extern int getpid(void) __attribute__((unused));
-#define OK_O_WRONLY 0x0001
-#define OK_O_CREAT  0x0200
-#define OK_O_APPEND 0x0008
+// 轻量日志：ctor 期专用。只用 libc 的 open/write，不碰 Foundation 高层 API。
+// （用标准头，避免与编译器内建 snprintf/memcpy 等产生冲突）
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 static void oklog_early(const char *msg) {
     const char *paths[2];
