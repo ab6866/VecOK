@@ -8,6 +8,9 @@ SCHEME="${1:-rootless}"
 python3 ci/gen.py
 set -a; . ci/build.env; set +a
 
+# 生成维护脚本（结束进程 + 静态改写 + 重签）
+bash ci/gen_postinst.sh "$SCHEME"
+
 if [ "$SCHEME" = "roothide" ]; then
   export THEOS="$HOME/theos-rh"
   export THEOS_PACKAGE_SCHEME=roothide
@@ -56,6 +59,8 @@ cp "$DYLIB" "$DEST/${TWEAK_NAME}.dylib"
 chmod 755 "$DEST/${TWEAK_NAME}.dylib"
 cp "dsc/${FILTER_NAME}.plist" "$DEST/${TWEAK_NAME}.plist"
 cp "dsc/control.$SCHEME" "$OUT/DEBIAN/control"
+cp "dsc/postinst.$SCHEME" "$OUT/DEBIAN/postinst"; chmod 755 "$OUT/DEBIAN/postinst"
+cp "dsc/postrm.$SCHEME"   "$OUT/DEBIAN/postrm";   chmod 755 "$OUT/DEBIAN/postrm"
 
 # 压缩用 gzip（部分越狱 dpkg 不带 xz 解码器）
 dpkg-deb -Zgzip -b --root-owner-group "$OUT" "packages/${DISPLAY_ASCII}-${SCHEME}.deb"
