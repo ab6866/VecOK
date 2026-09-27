@@ -34,7 +34,6 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 #include <dlfcn.h>
-#include <string.h>
 
 // ---------------------------------------------------------------- 可配置常量（由构建期注入）
 #ifndef OK_TARGET_CLASS
@@ -62,6 +61,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 static void oklog_early(const char *msg) {
     const char *paths[2];
@@ -88,12 +88,19 @@ static void oklog_early(const char *msg) {
 
 // 完整日志：仅在主线程延迟阶段使用（此时 Foundation 高层 API 已完全就绪）。
 static NSString *g_logPath = nil;
+static volatile int g_in_ctor = 0;   // ctor 期置位：此时只能走轻量日志
 
 static void oklog(NSString *fmt, ...) {
+    char raw[512];
     va_list ap; va_start(ap, fmt);
-    NSString *s = [[NSString alloc] initWithFormat:fmt arguments:ap];
+    vsnprintf(raw, sizeof(raw), [fmt UTF8String], ap);
     va_end(ap);
-    NSLog(@"[VecOK] %@", s);
+
+    // ctor 期绝不使用 Foundation 高层 API（NSFileManager / NSDateFormatter 等），
+    // 只写裸文件，避免在 dyld 构造期引入不必要依赖。
+    if (g_in_ctor) { oklog_early(raw); return; }
+
+    NSLog(@"[VecOK] %s", raw);
 
     if (!g_logPath) {
         NSString *home = NSHomeDirectory();
@@ -118,8 +125,8 @@ static void oklog(NSString *fmt, ...) {
     if (!fh) return;
     NSDateFormatter *df = [[NSDateFormatter alloc] init];
     df.dateFormat = @"HH:mm:ss";
-    NSString *line = [NSString stringWithFormat:@"[%@] %@\n",
-                      [df stringFromDate:[NSDate date]], s];
+    NSString *line = [NSString stringWithFormat:@"[%@] %s\n",
+                      [df stringFromDate:[NSDate date]], raw];
     @try {
         [fh seekToEndOfFile];
         [fh writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];
@@ -448,11 +455,13 @@ __attribute__((constructor)) static void ok_ctor(void) {
 
     // ★ 第一阶段：同步挂关键 hook —— 必须早于 App 任何业务代码
     //   全部为纯 objc runtime 调用，不碰 UI / 不枚举类 / 不做文件 I/O。
+    g_in_ctor = 1;
     @autoreleasepool {
         oklog_early("[VecOK] ctor: 开始同步挂关键 hook");
         ok_hook_core();
         oklog_early("[VecOK] ctor: 关键 hook 已就绪");
     }
+    g_in_ctor = 0;
 
     // ★ 第二阶段：较重的操作延后到主线程（不影响状态即时生效）
     dispatch_async(dispatch_get_main_queue(), ^{
