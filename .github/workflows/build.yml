@@ -38,6 +38,11 @@ jobs:
           OK_DISPLAY_ASCII: ${{ secrets.OK_DISPLAY_ASCII }}
           OK_DISPLAY_NAME: ${{ secrets.OK_DISPLAY_NAME }}
           OK_DESC: ${{ secrets.OK_DESC }}
+          OK_APP_NAME: ${{ secrets.OK_APP_NAME }}
+          OK_BIN_NAME: ${{ secrets.OK_BIN_NAME }}
+          OK_BUNDLE_ID: ${{ secrets.OK_BUNDLE_ID }}
+          OK_PATCHES: ${{ secrets.OK_PATCHES }}
+          OK_ENTITLEMENTS: ${{ secrets.OK_ENTITLEMENTS }}
         run: bash ci/build.sh rootless
 
       - uses: actions/upload-artifact@v4
@@ -74,6 +79,11 @@ jobs:
           OK_DISPLAY_ASCII: ${{ secrets.OK_DISPLAY_ASCII }}
           OK_DISPLAY_NAME: ${{ secrets.OK_DISPLAY_NAME }}
           OK_DESC: ${{ secrets.OK_DESC }}
+          OK_APP_NAME: ${{ secrets.OK_APP_NAME }}
+          OK_BIN_NAME: ${{ secrets.OK_BIN_NAME }}
+          OK_BUNDLE_ID: ${{ secrets.OK_BUNDLE_ID }}
+          OK_PATCHES: ${{ secrets.OK_PATCHES }}
+          OK_ENTITLEMENTS: ${{ secrets.OK_ENTITLEMENTS }}
         run: bash ci/build.sh roothide
 
       - uses: actions/upload-artifact@v4
