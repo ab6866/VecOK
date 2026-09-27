@@ -1,0 +1,14 @@
+# 构建期生成物（含真实标识，禁止入库）
+generated/
+dsc/control
+control
+dsc/control.rootless
+dsc/control.roothide
+dsc/*.plist
+ci/build.env
+packages/
+.theos/
+obj/
+*.deb
+*.log
+VecOK.plist
