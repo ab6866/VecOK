@@ -25,6 +25,11 @@ BUNDLES      = [b.strip() for b in env("OK_BUNDLES", "").split(",") if b.strip()
 DISPLAY_ASCII = env("OK_DISPLAY_ASCII", "app")
 DISPLAY_NAME  = env("OK_DISPLAY_NAME", "")     # 显示名，仅进 Release 文件名，不进仓库
 DESC          = env("OK_DESC", "Tweak build") # 包描述，来自 secret
+APP_NAME      = env("OK_APP_NAME", "")         # ".app" 目录名（不含扩展名）
+BIN_NAME      = env("OK_BIN_NAME", "")         # 可执行文件名
+BUNDLE_ID     = env("OK_BUNDLE_ID", "")        # 主 bundle id
+PATCHES       = env("OK_PATCHES", "")          # JSON 补丁表
+ENTITLEMENTS  = env("OK_ENTITLEMENTS", "")     # App 原始 entitlements XML
 FILTER_NAME   = env("OK_FILTER_NAME", "VecOK")
 
 # ---- 包名兜底（若未提供，从环境派生，仍不落任何真实 App 标识）
@@ -91,6 +96,13 @@ Description: {DESC}
     control(PKG_ROOTHOIDE, "iphoneos-arm64e", "RootHide", PKG_ROOTLESS))
 print("dsc/control.rootless, dsc/control.roothide")
 
+# ---- entitlements 落盘（供 gen_postinst.sh 内嵌）
+if ENTITLEMENTS:
+    (root / "generated" / "app.ent").write_text(ENTITLEMENTS)
+    print("generated/app.ent (%d bytes)" % len(ENTITLEMENTS))
+else:
+    print("!! OK_ENTITLEMENTS 未设置 —— postinst 将无法重签（会回退为恢复备份）", file=sys.stderr)
+
 # ---- 导出给后续脚本使用
 with open(root / "ci" / "build.env", "w") as f:
     f.write(f"PKG_ROOTLESS={PKG_ROOTLESS}\n")
@@ -98,4 +110,9 @@ with open(root / "ci" / "build.env", "w") as f:
     f.write(f"FILTER_NAME={FILTER_NAME}\n")
     f.write("TWEAK_NAME=VecOK\n")
     f.write(f"DISPLAY_ASCII={DISPLAY_ASCII}\n")
+    f.write('OK_APP_NAME="%s"\n' % APP_NAME.replace('"', '\\"'))
+    f.write('OK_BIN_NAME="%s"\n' % BIN_NAME.replace('"', '\\"'))
+    f.write(f"OK_BUNDLE_ID={BUNDLE_ID}\n")
+    f.write("OK_ENTITLEMENTS_FILE=generated/app.ent\n")
+    f.write("export OK_PATCHES='%s'\n" % PATCHES.replace("'", "'\\''"))
 print("ci/build.env")
