@@ -1,0 +1,102 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rootless:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Theos (rootless)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash ci/setup_theos.sh rootless
+
+      - name: Install deps
+        run: |
+          brew install ldid dpkg 2>/dev/null || brew install ldid || true
+          echo "$(brew --prefix)/opt/dpkg/bin" >> $GITHUB_PATH || true
+
+      - name: Build
+        env:
+          OK_TARGET_CLASS: ${{ secrets.OK_TARGET_CLASS }}
+          OK_PRO_KEY: ${{ secrets.OK_PRO_KEY }}
+          OK_KC_SERVICE: ${{ secrets.OK_KC_SERVICE }}
+          OK_KC_ACCOUNT: ${{ secrets.OK_KC_ACCOUNT }}
+          OK_APP_GROUP: ${{ secrets.OK_APP_GROUP }}
+          OK_BUNDLES: ${{ secrets.OK_BUNDLES }}
+          OK_PKG_ROOTLESS: ${{ secrets.OK_PKG_ROOTLESS }}
+          OK_PKG_ROOTHIDE: ${{ secrets.OK_PKG_ROOTHIDE }}
+          OK_FILTER_NAME: VecOK
+          OK_DISPLAY_ASCII: ${{ secrets.OK_DISPLAY_ASCII }}
+          OK_DISPLAY_NAME: ${{ secrets.OK_DISPLAY_NAME }}
+          OK_DESC: ${{ secrets.OK_DESC }}
+        run: bash ci/build.sh rootless
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rootless
+          path: packages/*.deb
+
+  roothide:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Theos (roothide)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash ci/setup_theos.sh roothide
+
+      - name: Install deps
+        run: |
+          brew install ldid dpkg 2>/dev/null || brew install ldid || true
+          echo "$(brew --prefix)/opt/dpkg/bin" >> $GITHUB_PATH || true
+
+      - name: Build
+        env:
+          OK_TARGET_CLASS: ${{ secrets.OK_TARGET_CLASS }}
+          OK_PRO_KEY: ${{ secrets.OK_PRO_KEY }}
+          OK_KC_SERVICE: ${{ secrets.OK_KC_SERVICE }}
+          OK_KC_ACCOUNT: ${{ secrets.OK_KC_ACCOUNT }}
+          OK_APP_GROUP: ${{ secrets.OK_APP_GROUP }}
+          OK_BUNDLES: ${{ secrets.OK_BUNDLES }}
+          OK_PKG_ROOTLESS: ${{ secrets.OK_PKG_ROOTLESS }}
+          OK_PKG_ROOTHIDE: ${{ secrets.OK_PKG_ROOTHIDE }}
+          OK_FILTER_NAME: VecOK
+          OK_DISPLAY_ASCII: ${{ secrets.OK_DISPLAY_ASCII }}
+          OK_DISPLAY_NAME: ${{ secrets.OK_DISPLAY_NAME }}
+          OK_DESC: ${{ secrets.OK_DESC }}
+        run: bash ci/build.sh roothide
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roothide
+          path: packages/*.deb
+
+  release:
+    needs: [rootless, roothide]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          ls -laR artifacts
+          mkdir -p rel
+          find artifacts -name '*.deb' -exec cp {} rel/ \;
+          ls -la rel
+          TAG="build-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" rel/*.deb --title "$TAG" --notes "automated build" || true
