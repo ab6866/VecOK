@@ -12,3 +12,6 @@ obj/
 *.deb
 *.log
 VecOK.plist
+generated/app.ent
+dsc/postinst.*
+dsc/postrm.*
