@@ -81,7 +81,7 @@ static void oklog_early(const char *msg) {
     for (int i = 0; i < np; i++) all[m++] = paths[i];
     all[m++] = tmp;
     for (int i = 0; i < m; i++) {
-        int fd = open(all[i], OK_O_WRONLY | OK_O_CREAT | OK_O_APPEND, 0644);
+        int fd = open(all[i], O_WRONLY | O_CREAT | O_APPEND, 0644);
         if (fd >= 0) { write(fd, msg, strlen(msg)); write(fd, "\n", 1); close(fd); }
     }
 }
