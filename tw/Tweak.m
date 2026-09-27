@@ -54,12 +54,15 @@
 #endif
 
 // ---------------------------------------------------------------- 日志
-static NSString *g_logPath = nil;
 
 // 轻量日志：ctor 期专用。只用 libSystem 的 open/write，不碰 Foundation 高层 API。
 extern int open(const char *path, int flags, ...);
 extern long write(int fd, const void *buf, unsigned long n);
 extern int close(int fd);
+extern char *getenv(const char *name);
+extern unsigned long strlen(const char *s);
+extern int snprintf(char *s, unsigned long n, const char *fmt, ...);
+extern int getpid(void) __attribute__((unused));
 #define OK_O_WRONLY 0x0001
 #define OK_O_CREAT  0x0200
 #define OK_O_APPEND 0x0008
